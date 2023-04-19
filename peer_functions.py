@@ -1,26 +1,29 @@
 import socket
 import threading
 import parsing
-from rfc import RFC
 import os
-import random
 
 SERVER_PORT = 7734
 P2P_VERSION = "P2P-CI/1.0"
 
-class Peer:
-    def __init__(self, rfcs: list[RFC]):
-        self.rfcs = rfcs
-        
-    #this creates a peer with the given number of random rfcs
-    @classmethod
-    def with_random_rfcs(cls, num_rfcs):
-        rfcs = []
-        for _ in range(num_rfcs):
-            rfcs.append(RFC.generate_random_rfc())
-        return cls(rfcs)
-    
-    
+peers_lock = threading.Lock()
+registered_peers = []
+
+rfcs_lock = threading.Lock()
+rfcs = []
+
+def handle_upload_client(peer_socket: socket):
+
+    peer_socket.send()
+    print('hi')
+
+def start_upload_server(upload_socket: socket):
+    upload_socket.listen()
+    while True:
+        client_socket, client_addr = upload_socket
+        print('Received connection from:', client_addr)
+        client_thread = threading.Thread(target=handle_upload_client, args=(client_socket))
+        client_thread.start()
 
 def add_cmd(socket: socket, rfc: str, host: str, port: str, title: str):
     msg = "ADD " + rfc + " " + P2P_VERSION + "\n"
@@ -66,22 +69,10 @@ def get_cmd(port: str, rfc: str, host: str):
     upload_server_socket.close()
     return parsing.parse_p2p_reponse(res)
 
-def handle_upload_client(peer_socket: socket):
-    peer_socket.send()
-    print('hi')
-
-def start_upload_server(upload_socket: socket):
-    upload_socket.listen()
-    while True:
-        peer_socket, peer_addr = upload_socket.accept()
-        print('Received connection from:', peer_addr)
-        client_thread = threading.Thread(target=handle_upload_client, args=(peer_socket))
-        client_thread.start()
-
 def start_peer():
     ##create the upload server socket
     upload_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    upload_socket.bind(("0.0.0.0", 0)) #zero means get a random available port
+    upload_socket.bind((socket.gethostname(), 0)) #zero means get a random available port
     (upload_socket_host, upload_socket_port) = upload_socket.getsockname()
 
     ##start upload server in another thread
@@ -120,5 +111,4 @@ def start_peer():
         
         #print response from peer/server
         if response != "":
-            print(response)
-        
+            print(response)        
