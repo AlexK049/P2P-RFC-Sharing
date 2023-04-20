@@ -3,15 +3,27 @@ import threading
 import parsing
 from rfc import RFC
 import os
-import random
+import datetime
 
 SERVER_PORT = 7734
-P2P_VERSION = "P2P-CI/1.0"
+SERVER_HOST = 'localhost'
 
 class Peer:
+    #version of p2p system that this peer is implemented on
+    P2P_VERSION = "P2P-CI/1.0"
+
     def __init__(self, rfcs: list[RFC]):
         self.rfcs = rfcs
-        
+
+        ##create the upload server socket
+        self.upload_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.upload_socket.bind(("0.0.0.0", 0)) #zero means get a random available port
+        (self.upload_socket_host, self.upload_socket_port) = self.upload_socket.getsockname()
+
+        ##connect to server
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server_socket.connect((SERVER_HOST, SERVER_PORT))
+
     #this creates a peer with the given number of random rfcs
     @classmethod
     def with_random_rfcs(cls, num_rfcs):
@@ -20,7 +32,50 @@ class Peer:
             rfcs.append(RFC.generate_random_rfc())
         return cls(rfcs)
     
+    def start_upload_server(self):
+        ##start upload server in another thread
+        upload_server_thread = threading.Thread(target=self._run_upload_server, args=(self.upload_socket))
+        upload_server_thread.daemon = True #exit when main program exits
+        upload_server_thread.start()
     
+    def _run_upload_server(self, upload_socket: socket):
+        upload_socket.listen()
+        while True:
+            peer_socket, peer_addr = upload_socket.accept()
+            print('Received connection from:', peer_addr)
+            client_thread = threading.Thread(target=self.handle_peer, args=(peer_socket))
+            client_thread.start()
+    
+    def _handle_peer(self, peer_socket: socket):
+        try:
+            request = parsing.parse_peer_request(peer_socket.recv(1024).decode())
+            if request.version != self.P2P_VERSION:
+                peer_socket.send(err_msg(self.P2P_VERSION, 505, "P2P-CI Version Not Supported").encode())
+                return
+            
+            retrieved_rfc = None
+            for rfc in self.rfcs:
+                if rfc.rfc_number == request.rfc_number:
+                    retrieved_rfc = rfc
+                    break
+
+            if retrieved_rfc == None:
+                peer_socket.send(self.p_res_msg(self.P2P_VERSION, 404, "Not Found").encode())
+            else:
+                msg = self.p_res_msg(self.P2P_VERSION, 200, "OK")
+                
+        except:
+            peer_socket.send(self.p_res_msg(self.P2P_VERSION, 400, "Bad Request").encode())
+
+    #headers concerning file info must be provided by whoever calls this function
+    @staticmethod
+    def p_res_msg(version: str, status_code: int, phrase: str):
+        current_date = datetime.datetime.now(datetime.timezone.utc)
+        rfc_date = current_date.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        msg = version + " " + status_code + " " + phrase + "\n"
+        msg += "Date: " + rfc_date + "\n"
+        msg += "OS: " + os.name + "\n"
+        return msg
 
 def add_cmd(socket: socket, rfc: str, host: str, port: str, title: str):
     msg = "ADD " + rfc + " " + P2P_VERSION + "\n"
@@ -70,28 +125,10 @@ def handle_upload_client(peer_socket: socket):
     peer_socket.send()
     print('hi')
 
-def start_upload_server(upload_socket: socket):
-    upload_socket.listen()
-    while True:
-        peer_socket, peer_addr = upload_socket.accept()
-        print('Received connection from:', peer_addr)
-        client_thread = threading.Thread(target=handle_upload_client, args=(peer_socket))
-        client_thread.start()
+
 
 def start_peer():
-    ##create the upload server socket
-    upload_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    upload_socket.bind(("0.0.0.0", 0)) #zero means get a random available port
-    (upload_socket_host, upload_socket_port) = upload_socket.getsockname()
-
-    ##start upload server in another thread
-    upload_server_thread = threading.Thread(target=start_upload_server, args=(upload_socket))
-    upload_server_thread.daemon = True #exit when main program exits
-    upload_server_thread.start()
-
-    ##connect to server
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.connect(('localhost', SERVER_PORT))
+    
     
     ##handle commands from client
     while True:

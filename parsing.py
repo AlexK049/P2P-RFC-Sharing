@@ -97,9 +97,9 @@ def parse_peer_request(peer_request: str):
     #split the response message into lines
     lines = peer_request.split("\n")
 
-    #parse version, status code, and phrase
+    #parse version, rfc_number, and phrase
     status_line = lines[0]
-    version, status_code, phrase = status_line.split(" ", 2)
+    command, rfc_number, version = status_line.split(" ", 2)
 
     # Parse the headers
     headers = {}
@@ -110,8 +110,8 @@ def parse_peer_request(peer_request: str):
         headers[name.strip()] = value.strip()
 
     return {
-                'version': version, 
-                'status_code': status_code, 
-                'phrase': phrase,
+                'command': command, 
+                'rfc_number': rfc_number, 
+                'version': version,
                 'headers': headers,
             }
