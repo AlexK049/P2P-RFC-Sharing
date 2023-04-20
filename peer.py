@@ -50,7 +50,7 @@ class Peer:
         try:
             request = parsing.parse_peer_request(peer_socket.recv(1024).decode())
             if request.version != self.P2P_VERSION:
-                peer_socket.send(err_msg(self.P2P_VERSION, 505, "P2P-CI Version Not Supported").encode())
+                peer_socket.send(self.res_msg(self.P2P_VERSION, 505, "P2P-CI Version Not Supported").encode())
                 return
             
             retrieved_rfc = None
@@ -60,21 +60,27 @@ class Peer:
                     break
 
             if retrieved_rfc == None:
-                peer_socket.send(self.p_res_msg(self.P2P_VERSION, 404, "Not Found").encode())
+                peer_socket.send(self.res_msg(self.P2P_VERSION, 404, "Not Found").encode())
             else:
-                msg = self.p_res_msg(self.P2P_VERSION, 200, "OK")
-                
+                peer_socket.send(self.res_msg(self.P2P_VERSION, 200, "OK", retrieved_rfc))
         except:
-            peer_socket.send(self.p_res_msg(self.P2P_VERSION, 400, "Bad Request").encode())
+            peer_socket.send(self.res_msg(self.P2P_VERSION, 400, "Bad Request").encode())
+        
+        peer_socket.close()
 
-    #headers concerning file info must be provided by whoever calls this function
+    #this does not add any headers about file information
     @staticmethod
-    def p_res_msg(version: str, status_code: int, phrase: str):
+    def res_msg(version: str, status_code: int, phrase: str, rfc: RFC = None):
         current_date = datetime.datetime.now(datetime.timezone.utc)
         rfc_date = current_date.strftime("%a, %d %b %Y %H:%M:%S GMT")
         msg = version + " " + status_code + " " + phrase + "\n"
         msg += "Date: " + rfc_date + "\n"
         msg += "OS: " + os.name + "\n"
+        if (rfc is not None):
+            msg += "Last-Modified: " + rfc.last_modified + "\n "
+            msg += "Content-Length: " + rfc.content_length + "\n "
+            msg += "Content-Type: " + rfc.content_type + "\n "
+            msg += rfc.content + "\n "
         return msg
 
 def add_cmd(socket: socket, rfc: str, host: str, port: str, title: str):
