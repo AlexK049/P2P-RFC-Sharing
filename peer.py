@@ -54,6 +54,7 @@ class Peer:
 
         upload_server_thread.start()
 
+    #call this server to change the global flag which all threads are looking at to see if the server should terminate
     def stop_upload_server(self):
         self.stop_requested_lock.acquire()
         self.stop_requested = True
@@ -165,6 +166,7 @@ class Peer:
 def main():
     peer = Peer.with_random_rfcs(4)
 
+    #define a handler for ctrl+c
     def sigint_handler(signum, frame):
         peer.exit_cmd()
         peer.stop_upload_server()
@@ -187,7 +189,16 @@ def main():
 
         response = ""
         if args.command == "add":
-            response = peer.add_cmd(args.rfc, args.title)
+            #if the rfc does not exist locally, dont do the add_cmd and let the user know
+            rfc_exists = False
+            for rfc in peer.rfcs:
+                if rfc.rfc_number == args.rfc and rfc.title == args.title:
+                    rfc_exists = True
+                    break
+            if rfc_exists:
+                response = peer.add_cmd(args.rfc, args.title)
+            else:
+                response = "The specified RFC does not exist locally on this system."
         elif args.command == "lookup":
             response = peer.lookup_cmd(args.rfc, args.title)
         elif args.command == "list":
@@ -203,9 +214,10 @@ def main():
             if args.what == "self":
                 response = "Upload Server Host: {}\nUpload Server Port: {}\n".format(peer.upload_socket_host, peer.upload_socket_port)
             else:
+                #if not self, look for the rfc specified
                 for rfc in peer.rfcs:
                     if rfc.rfc_number == args.what:
-                       response = rfc.__str__()
+                       response = str(rfc)
                 if response == "": #no rfc found
                     response = "The RFC specified does not exist"
         elif args.command == "exit":

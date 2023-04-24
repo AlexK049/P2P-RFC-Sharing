@@ -11,6 +11,7 @@ class RFC:
         self.content_type = content_type
         self.content = content
 
+    #initialize an rfc with a non random number and title
     @classmethod
     def from_number_and_title(cls, rfc_number: str, title: str):
         rfc = RFC.generate_random_rfc()

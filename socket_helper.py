@@ -1,5 +1,6 @@
 import socket
 
+#this makes it so that all data is received from a socket
 def recv_all(socket: socket):
     socket.settimeout(0.25)
     response = b""

@@ -7,12 +7,15 @@ P2P_VERSION = "P2P-CI/1.0"
 SERVER_PORT = 7734
 SERVER_HOST = 'localhost'
 
+#stores registered peers with lock for thread safety
 peers_lock = threading.Lock()
 registered_peers = []
 
+#index of rfsc with lock for thread safety
 rfcs_lock = threading.Lock()
 rfcs = []
 
+#add an rfc to the index
 def add_rfc(rfc_number: str, rfc_title: str, peer_hostname: str, peer_port):
     with rfcs_lock:
         rfcs.append(JSObject(**{
@@ -22,6 +25,7 @@ def add_rfc(rfc_number: str, rfc_title: str, peer_hostname: str, peer_port):
                 'peer_port': peer_port
             }))
 
+#remove all records of a peer from the system based on the hostname and peer port
 def remove_peer_from_system(peer_hostname: str, peer_port: int):
     with rfcs_lock:
         for rfc in rfcs:
@@ -32,6 +36,7 @@ def remove_peer_from_system(peer_hostname: str, peer_port: int):
             if peer.peer_hostname == peer_hostname and peer.peer_port == peer_port:
                 registered_peers.remove(peer)
 
+#add a peer to to the registered peers list
 def register_peer(peer_hostname: str, peer_port: int):
     with peers_lock:
         registered_peers.append(JSObject(**{
@@ -39,6 +44,7 @@ def register_peer(peer_hostname: str, peer_port: int):
                 'peer_port': peer_port
             }))
 
+#handle each client concurrently until they exit
 def handle_client(client_socket: socket):
     init_msg = parsing.parse_peer_request(client_socket.recv(1024).decode())
     client_host = init_msg.headers["Host"]
