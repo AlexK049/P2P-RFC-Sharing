@@ -21,12 +21,15 @@ class RFC:
     @staticmethod
     def generate_random_rfc():
         #generate random data for the RFC object
-        rfc_number = "RFC " + random.randint(100, 999)
-        rfc_title = "Random Title " + random.randint(1, 1000000)
+        rfc_number = "RFC " + str(random.randint(100, 999))
+        rfc_title = "Random Title " + str(random.randint(1, 1000000))
         last_modified = datetime.fromtimestamp(random.randint(0, 1000000000)).strftime("%a, %d %b %Y %H:%M:%S GMT")
-        content_length = random.randint(100, 10000)
+        content_length = random.randint(100, 1000)
         content_type = random.choice(["text/plain", "application/pdf", "image/jpeg"])
         content = ''.join(random.choices(string.ascii_uppercase + string.digits, k=content_length))
 
         #create and return an RFC object with the random data
         return RFC(rfc_number, rfc_title, last_modified, content_length, content_type, content)
+    
+    def __str__(self) -> str:
+        return "RFC-Number: {}\nRFC-Title: {}\nLast-Modified: {}\nContent-Length: {}\nContent-Type: {}\n\n{}\n".format(self.rfc_number, self.title, self.last_modified, self.content_length, self.content_type, self.content)
