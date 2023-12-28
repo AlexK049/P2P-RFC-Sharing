@@ -1,8 +1,6 @@
-# This is Project 1 for CSC401
-
+# P2P-RFC-Sharing
+This project is a demonstration of a P2P network with socket programming in Python. Peers find information about other peers and their RFCs by contacting the server. They can then download an RFC directly from a peer which possesses it.
 ## General Info
-I can guarantee that this project works on Python version 3.11.0 as this was the version that it was tested on.
-
 To run the server enter 'python server.py' in the terminal
 To run the peer enter 'python peer.py' in the terminal
 
@@ -11,6 +9,8 @@ The server will run indefinitely or until it is halted.
 Peers will run until they receive an exit command or they are halted with a Keyboard Interrupt.
 
 Once the peer is running, a line with 'cmd>' on it will appear. Commands can be entered to interact with the system. The API is detailed in a section below.
+
+This was developed for a networking class at NC State. Developed and tested on version 3.11.0 of Python.
 
 ## API:
 ### list
